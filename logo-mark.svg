@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 80" role="img" aria-labelledby="title desc">
+  <title id="title">Asr-ı Saadet Portalı amblemi</title>
+  <desc id="desc">Sekiz köşeli yıldız, açık kitap ve sivri kemerden oluşan miras amblemi</desc>
+  <path fill="#c9a65a" d="M36 2.5C18.2 9.2 6 20.4 6 37.2V76h60V37.2C66 20.4 53.8 9.2 36 2.5Z"/>
+  <path fill="#0d211b" d="M36 7.4C20.8 13.6 10.8 23.4 10.8 37.5v33.7h50.4V37.5C61.2 23.4 51.2 13.6 36 7.4Z"/>
+  <path fill="none" stroke="#e0c47e" stroke-width="1.25" d="M36 12.5c-12.2 5.7-19.8 14-19.8 25.6v28.2h39.6V38.1C55.8 26.5 48.2 18.2 36 12.5Z" opacity=".82"/>
+  <path fill="#e0c47e" d="m36 19.1 1.65 4.15 4.15 1.65-4.15 1.65L36 30.7l-1.65-4.15-4.15-1.65 4.15-1.65L36 19.1Z"/>
+  <circle cx="36" cy="24.9" r="1.15" fill="#f7f0df"/>
+  <path fill="#f7f0df" d="M20.4 43.2c5.9-.35 11.05 1.05 15.6 4.2v15.7c-4.5-3.15-9.7-4.5-15.6-4.05V43.2Zm31.2 0c-5.9-.35-11.05 1.05-15.6 4.2v15.7c4.5-3.15 9.7-4.5 15.6-4.05V43.2Z"/>
+  <path fill="none" stroke="#c9a65a" stroke-linecap="round" stroke-width="1.15" d="M23.9 47.6c3.7-.05 6.7.75 9.15 2.35m-9.15 2.1c3.7-.05 6.7.75 9.15 2.35m15.05-6.8c-3.7-.05-6.7.75-9.15 2.35m9.15 2.1c-3.7-.05-6.7.75-9.15 2.35"/>
+  <path fill="none" stroke="#c9a65a" stroke-linecap="round" stroke-width="1.25" d="M18 66.3h36"/>
+</svg>

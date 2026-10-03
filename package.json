@@ -1,0 +1,10 @@
+{
+  "name": "asri-saadet-portali",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}
