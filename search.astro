@@ -1,0 +1,10 @@
+---
+import LegacyPage from '../components/LegacyPage.astro';
+const page = "search";
+const title = "Portalda Ara | Asr-ı Saadet Portalı";
+const description = "Portalın şahsiyet ve olay arşivinde arama yapın.";
+const canonical = new URL('/search', Astro.site).href;
+const heading = "Portalda Ara";
+---
+<LegacyPage {page} {title} {description} {canonical} {heading} noindex={true} />
+

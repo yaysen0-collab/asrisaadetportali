@@ -1,0 +1,10 @@
+---
+import LegacyPage from '../components/LegacyPage.astro';
+const page = "admin";
+const title = "Yönetici Paneli | Asr-ı Saadet Portalı";
+const description = "Portal içeriklerini yönetmek için yönetici paneli.";
+const canonical = new URL('/admin', Astro.site).href;
+const heading = "Yönetici Paneli";
+---
+<LegacyPage {page} {title} {description} {canonical} {heading} noindex={true} />
+

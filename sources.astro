@@ -1,0 +1,10 @@
+---
+import LegacyPage from '../components/LegacyPage.astro';
+const page = "sources";
+const title = "Siyer ve İslam Tarihi Kaynakları | Asr-ı Saadet";
+const description = "Sahabe hayatları ve Asr-ı Saadet kayıtları hazırlanırken yararlanılan klasik siyer, hadis ve İslam tarihi kaynaklarını inceleyin.";
+const canonical = new URL('/sources', Astro.site).href;
+const heading = "Kaynakça";
+---
+<LegacyPage {page} {title} {description} {canonical} {heading} noindex={false} />
+

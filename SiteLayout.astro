@@ -1,0 +1,141 @@
+---
+const {
+  title = 'Asr-ı Saadet Portalı',
+  description = 'Ashab-ı Kiram’ın hayatları ve İslam tarihi üzerine kaynaklı dijital arşiv.',
+  canonical = new URL('/', Astro.site).href,
+  page = 'home',
+  legacyApp = false,
+  jsonLd = null,
+  preloadHero = false,
+  noindex = false,
+} = Astro.props;
+---
+<!doctype html>
+<html lang="tr" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, follow" />}
+    <meta name="theme-color" content="#f3efe5" />
+    <meta name="color-scheme" content="light dark" />
+    <title>{title}</title>
+    <link rel="canonical" href={canonical} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://tarihizatlar.firebaseapp.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/premium.css" />
+    <link rel="stylesheet" href="/extra.css" />
+    <link rel="icon" href="/images/favicon.ico" sizes="any" />
+    <link rel="icon" href="/images/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    {preloadHero && <link rel="preload" as="image" href="https://images.unsplash.com/photo-1776893761976-03f46ce701df?w=1400&q=70&auto=format&fit=crop" fetchpriority="high" />}
+    {jsonLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>}
+    <script is:inline>
+      try {
+        const savedTheme = localStorage.getItem('asr-theme');
+        const savedLanguage = localStorage.getItem('asr-language');
+        document.documentElement.dataset.theme = savedTheme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.lang = savedLanguage || 'tr';
+      } catch {}
+    </script>
+    <script is:inline>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script is:inline defer src="/_vercel/insights/script.js"></script>
+  </head>
+  <body data-page={page} data-seo-title={title}>
+    <nav class="site-nav" aria-label="Ana menü">
+      <div class="nav-row">
+        <a class="brand" href="/" aria-label="Asr-ı Saadet Portalı ana sayfa">
+          <span class="brand-mark" aria-hidden="true"><img src="/images/logo-mark.svg" alt="" /></span>
+          <span class="brand-copy"><strong>Asr-ı Saadet Portalı</strong><small>İslam tarihi ve Ashab-ı Kiram arşivi</small></span>
+        </a>
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation">
+          <span></span><span></span><span></span><b>Menü</b>
+        </button>
+        <div class="nav-links" id="primary-navigation">
+          <a href="/" data-section="home">Ana Sayfa</a>
+          <a href="/archive" data-section="archive">Arşiv</a>
+          <a href="/timeline" data-section="timeline">Zaman Çizelgesi</a>
+          <a href="/genealogy" data-section="genealogy">Soyağacı</a>
+          <a href="/random" data-section="random">Rastgele Şahsiyet</a>
+          <a href="/articles" data-section="articles">Makaleler</a>
+          <a href="/search" data-section="search" id="ara-nav-link" aria-label="Portalda ara">Ara</a>
+          <a href="/login" data-section="login" id="login-nav-link">Giriş</a>
+          <a href="/admin" data-section="admin" id="admin-nav-link" style="display:none">Panel</a>
+        </div>
+        <div class="preference-controls" aria-label="Görünüm ve dil ayarları">
+          <div class="language-switch" role="group" aria-label="Dil seçimi">
+            <button type="button" data-language="tr" aria-pressed="true">TR</button>
+            <button type="button" data-language="en" aria-pressed="false">EN</button>
+          </div>
+          <button class="theme-toggle" type="button" aria-pressed="false" aria-label="Gece moduna geç" title="Gece moduna geç">
+            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"></path></svg>
+            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.3 15.2A8.5 8.5 0 0 1 8.8 3.7 8.5 8.5 0 1 0 20.3 15.2Z"></path></svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+    <script is:inline>
+      document.querySelectorAll('.nav-links a[data-section]').forEach(function (a) {
+        if (a.dataset.section === document.body.dataset.page) { a.classList.add('active'); a.setAttribute('aria-current', 'page'); }
+      });
+    </script>
+    <slot />
+    <footer class="site-footer">
+      <div class="footer-half footer-intro">
+        <div>
+          <p class="brand"><span class="brand-mark" aria-hidden="true"><img src="/images/logo-mark.svg" alt="" /></span><span class="brand-copy"><strong>Asr-ı Saadet Portalı</strong><small>İslam tarihi ve Ashab-ı Kiram arşivi</small></span></p>
+          <p>Ashâb-ı Kirâm'ın hayatlarını, nesep bağlarını ve çağın izlerini belgeleyen bağımsız dijital arşiv.</p>
+        </div>
+        <small>© 2026 · Tüm hakları saklıdır</small>
+      </div>
+      <div class="footer-half footer-links">
+        <div>
+          <h3>Hızlı Erişim</h3>
+          <a href="/">Ana Sayfa</a>
+          <a href="/archive">Arşiv</a>
+          <a href="/timeline">Zaman Çizelgesi</a>
+          <a href="/genealogy">Soyağacı</a>
+          <a href="/random">Rastgele Şahsiyet</a>
+          <a href="/articles">Makaleler</a>
+          <a href="/faq">S.S.S.</a>
+          <a href="/search">Portalda Ara</a>
+        </div>
+        <div>
+          <h3>Hakkında</h3>
+          <p>Klasik İslâm kaynaklarından<br />derlenen açık erişimli arşiv.</p>
+          <a href="/sources">Kaynakça</a>
+          <a href="/contribute">Katkıda Bulun</a>
+          <a href="/privacy">Gizlilik Politikası</a>
+          <a href="/changelog">Sürüm Notları</a>
+        </div>
+      </div>
+    </footer>
+    <script is:inline src="/preferences.js" defer></script>
+    <script is:inline src="/ui.js" defer></script>
+    <script is:inline src="/metin-duzelt.js" defer></script>
+    {legacyApp && <script is:inline type="module" src="/script.js"></script>}
+  </body>
+  <style is:global>
+  .article-page { width: min(820px, 100%); margin: 0 auto; padding: clamp(2rem, 5vw, 4rem) clamp(1.25rem, 4vw, 2rem) clamp(3rem, 6vw, 5rem); }
+  .article-page .person-crumbs { margin: 0 0 1.5rem; color: var(--muted); font-size: .74rem; letter-spacing: .04em; }
+  .article-page .person-crumbs a, .article-page .person-back { color: var(--brass-text); text-decoration: none; }
+  .article-page h1 { margin: 0 0 1.5rem; color: var(--forest); font-family: var(--display); font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 600; line-height: 1.15; }
+  .article-page .article-full p { margin: 0 0 1.15rem; color: var(--ink); font-size: 1rem; line-height: 1.85; }
+  .article-page .article-full blockquote { margin: 1.5rem 0; padding-left: 1rem; border-left: 2px solid var(--brass); }
+  .article-page .person-back { display: inline-block; margin-top: 1.5rem; font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; }
+  .faq-item summary.faq-question { display: flex; justify-content: space-between; cursor: pointer; list-style: none; }
+  .faq-item summary.faq-question::-webkit-details-marker { display: none; }
+  .faq-item summary.faq-question::after { content: '+'; margin-left: 1rem; color: var(--brass-text); }
+  .faq-item[open] summary.faq-question::after { content: '−'; }
+  </style>
+</html>

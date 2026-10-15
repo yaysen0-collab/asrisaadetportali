@@ -326,6 +326,9 @@ p {
   font-weight: 500;
 }
 
+.profile-name-link { color: inherit; text-decoration: underline; text-decoration-color: rgba(184, 147, 74, .55); text-underline-offset: 4px; }
+.profile-name-link:hover { color: var(--brass-text); }
+
 .record .title,
 .article-tag {
   color: var(--brass-text);
@@ -1067,6 +1070,16 @@ p {
   background: rgba(140, 61, 47, 0.08);
   border-left: 2px solid #8c3d2f;
   font-size: 0.78rem;
+}
+
+.form-warning {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.85rem;
+  color: #795716;
+  background: rgba(184, 147, 74, 0.12);
+  border-left: 2px solid var(--brass);
+  font-size: 0.78rem;
+  line-height: 1.6;
 }
 
 .form-actions {

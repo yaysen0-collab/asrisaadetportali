@@ -1,0 +1,120 @@
+rules_version = '2';
+
+// Asr-ı Saadet Portalı — Firestore güvenlik kuralları
+// Yayınlamak için: Firebase Console → Firestore Database → Rules → bu dosyanın içeriğini yapıştır → Publish
+// (veya: firebase deploy --only firestore:rules)
+//
+// Özet:
+//   zatlar, olaylar      → herkes okuyabilir, sadece yöneticiler yazabilir
+//   makaleler            → herkes yayındakileri okur, yöneticiler hepsini okur/yazar
+//   silinenler           → silme izleri (herkes okur, yönetici yazar)
+//   favoriler, notlar    → her kullanıcı yalnızca kendi kayıtlarını görür/düzenler
+//   admins/{uid}         → Console'dan elle eklenen ek yöneticiler (active: true)
+//   diğer her şey        → kapalı
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsExistingDocument() {
+      return signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    function ownsIncomingDocument() {
+      return signedIn() && request.resource.data.uid == request.auth.uid;
+    }
+
+    // E-posta listesi script.js içindeki ADMIN_EMAILS ile aynı olmalı.
+    // email_verified şartı önemli: aksi hâlde biri, henüz Firebase hesabı açılmamış bir
+    // yönetici adresiyle şifreli üyelik oluşturup yönetici yetkisi alabilir.
+    function isAdmin() {
+      return signedIn()
+        && (
+          (
+            request.auth.token.email_verified == true
+            && request.auth.token.email.lower() in [
+              'asrisaadetportali@gmail.com',
+              'zeynepglfm@gmail.com'
+            ]
+          )
+          || (
+            exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+            && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true
+          )
+        );
+    }
+
+    function validNote() {
+      return request.resource.data.keys().hasOnly([
+          'uid', 'tip', 'itemId', 'ad', 'metin', 'guncellemeTarihi'
+        ])
+        && request.resource.data.tip in ['zat', 'olay']
+        && request.resource.data.itemId is string
+        && request.resource.data.ad is string
+        && request.resource.data.metin is string
+        && request.resource.data.metin.size() <= 10000
+        && request.resource.data.guncellemeTarihi is number;
+    }
+
+    function validFavorite() {
+      return request.resource.data.keys().hasOnly([
+          'uid', 'tip', 'itemId', 'ad', 'eklenmeTarihi'
+        ])
+        && request.resource.data.tip in ['zat', 'olay']
+        && request.resource.data.itemId is string
+        && request.resource.data.ad is string
+        && request.resource.data.eklenmeTarihi is number;
+    }
+
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /zatlar/{recordId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /olaylar/{recordId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Makaleler: herkes YAYINDAKİLERİ okuyabilir (sorgu where('yayinda','==',true) içermeli),
+    // yöneticiler taslaklar dahil hepsini okur ve yazar.
+    match /makaleler/{articleId} {
+      allow read: if resource.data.yayinda == true || isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.baslik is string && request.resource.data.baslik.size() > 0
+        && request.resource.data.slug is string && request.resource.data.slug.matches('^[a-z0-9-]{1,80}$')
+        && request.resource.data.yayinda is bool;
+      allow delete: if isAdmin();
+    }
+
+    // Silme izleri: ziyaretçiler derlemedeki veriyi kullandığı için, silinen kayıtların
+    // onların ekranından da kalkmasını sağlar. İçinde yalnızca tür, kayıt kimliği ve tarih var.
+    match /silinenler/{tombstoneId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /favoriler/{favoriteId} {
+      allow read, delete: if ownsExistingDocument();
+      allow create: if ownsIncomingDocument() && validFavorite();
+      allow update: if ownsExistingDocument() && ownsIncomingDocument() && validFavorite();
+    }
+
+    match /notlar/{noteId} {
+      allow read, delete: if ownsExistingDocument();
+      allow create: if ownsIncomingDocument() && validNote();
+      allow update: if ownsExistingDocument() && ownsIncomingDocument() && validNote();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

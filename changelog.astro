@@ -1,0 +1,10 @@
+---
+import LegacyPage from '../components/LegacyPage.astro';
+const page = "changelog";
+const title = "Sürüm Notları | Asr-ı Saadet Portalı";
+const description = "Asr-ı Saadet Portalı güncellemelerini ve sürüm notlarını inceleyin.";
+const canonical = new URL('/changelog', Astro.site).href;
+const heading = "Sürüm Notları";
+---
+<LegacyPage {page} {title} {description} {canonical} {heading} noindex={false} />
+

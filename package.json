@@ -1,10 +1,22 @@
 {
   "name": "asri-saadet-portali",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
-    "build": "node build.js"
+    "dev": "astro dev",
+    "build": "node build.js && astro build",
+    "preview": "astro preview"
   },
   "dependencies": {
+    "astro": "^6.0.0",
     "firebase-admin": "^13.0.0"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "sharp": true,
+    "@firebase/util": true,
+    "protobufjs": true
   }
 }

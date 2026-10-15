@@ -1,0 +1,10 @@
+---
+import LegacyPage from '../components/LegacyPage.astro';
+const page = "account";
+const title = "Hesabım | Asr-ı Saadet Portalı";
+const description = "Kayıtlı içeriklerinizi ve notlarınızı yönetin.";
+const canonical = new URL('/account', Astro.site).href;
+const heading = "Hesabım";
+---
+<LegacyPage {page} {title} {description} {canonical} {heading} noindex={true} />
+

@@ -1,29 +1,66 @@
-// build.js — Firestore'dan statik şahsiyet sayfaları + sitemap.xml üretir.
-// Gereksinim: Node 18+ (yerleşik fetch). Ek paket gerekmez.
-// Çalıştırma: FIREBASE_PROJECT_ID=xxx node build.js
+// build.js — Firestore'dan statik şahsiyet sayfaları, site-data.json, makale verisi ve sitemap.xml üretir.
+// Gereksinim: Node 18+ (yerleşik fetch).
+//
+// Veri kaynağı sırası (ilk çalışan kullanılır):
+//   1. FIREBASE_SERVICE_ACCOUNT  → firebase-admin (App Check ve kurallardan etkilenmez — ÖNERİLEN)
+//   2. Firestore REST API        → App Check "Enforce" açıksa 403 verir
+//   3. Canlı sitedeki /site-data.json (önceki başarılı derlemenin verisi)
+//   4. Hiçbiri olmazsa derleme YİNE DE tamamlanır; şahsiyet sayfaları atlanır, site verileri
+//      tarayıcıda doğrudan Firestore'dan okur. (Eskiden derleme tamamen duruyordu.)
 
 const fs = require('fs');
 const path = require('path');
 
 // ================== AYARLAR (kendinize göre düzenleyin) ==================
 const CONFIG = {
-  projectId: process.env.FIREBASE_PROJECT_ID, // Firebase proje kimliği
+  projectId: process.env.FIREBASE_PROJECT_ID || 'tarihizatlar', // Açık koleksiyon; gerekirse Vercel değişkeniyle geçersiz kılınabilir
   collection: 'zatlar',                        // 'zatlar' mı 'people' mı? Kontrol edin
-  siteUrl: 'https://asrisaadetportali.vercel.app',
-  outDir: 'sahabe',                            // sayfalar /sahabe/ altına yazılır
+  // Site adresi tek yerden gelir: site.config.json (veya Vercel'de SITE_URL ortam değişkeni).
+  siteUrl: (process.env.SITE_URL || require('./site.config.json').siteUrl).replace(/\/+$/, ''),
+  outDir: 'public/sahabe',                     // statik sayfalar Astro public alanına yazılır
+  urlPath: 'sahabe',                           // canlı URL yolu
   cssHref: '/style.css',                       // sitenizin CSS dosyaları (kökte)
   premiumHref: '/premium.css',
   nameFields: ['ad', 'isim', 'name'],          // isim hangi alandaysa o (sırayla denenir)
   bioField: 'bilgi',
   sourceField: null,                           // kaynak alanı varsa adı, yoksa null
   minWords: 80,                                // bu kadar kelimeden azsa noindex
-  staticPages: ['/', '/archive', '/timeline', '/genealogy', '/articles', '/faq'],
+  staticPages: ['/', '/archive', '/timeline', '/genealogy', '/articles', '/faq', '/sources'],
 };
 // ==========================================================================
 
 if (!CONFIG.projectId && !process.env.FIREBASE_SERVICE_ACCOUNT) {
   console.error('FIREBASE_SERVICE_ACCOUNT veya FIREBASE_PROJECT_ID ortam değişkeni gerekli.');
   process.exit(1);
+}
+
+// GitHub web sitesinden "Upload files" ile dosya seçerek yükleme yapılırsa klasörler kaybolur ve
+// bütün dosyalar kök dizine düşer. Derleme sunucusunda (yalnızca Vercel'in geçici kopyasında, GitHub'daki
+// dosyalara dokunmadan) dosyaları doğru klasörlerine geri taşıyarak derlemeyi kurtarırız.
+const PROJE_DUZENI = [ "public/extra.css", "public/googleaac4de83a69f4b73.html", "public/images/apple-touch-icon.png", "public/images/favicon-16.png", "public/images/favicon-192.png", "public/images/favicon-32.png", "public/images/favicon-512.png", "public/images/favicon.ico", "public/images/favicon.svg", "public/images/logo-mark.svg", "public/images/logo.png", "public/metin-duzelt.js", "public/preferences.js", "public/premium.css", "public/robots.txt", "public/script.js", "public/site.webmanifest", "public/sitemap.xml", "public/style.css", "public/ui.js", "src/components/LegacyPage.astro", "src/data/articles.json", "src/data/faq.json", "src/data/makaleler.mjs", "src/layouts/SiteLayout.astro", "src/pages/account.astro", "src/pages/admin.astro", "src/pages/archive.astro", "src/pages/articles.astro", "src/pages/changelog.astro", "src/pages/contribute.astro", "src/pages/faq.astro", "src/pages/genealogy.astro", "src/pages/index.astro", "src/pages/login.astro", "src/pages/makaleler/[slug].astro", "src/pages/privacy.astro", "src/pages/random.astro", "src/pages/search.astro", "src/pages/sources.astro", "src/pages/timeline.astro" ];
+(function klasorleriOnar() {
+  if (fs.existsSync(path.join(__dirname, 'src', 'pages'))) return;
+  let tasinan = 0;
+  for (const hedef of PROJE_DUZENI) {
+    const kaynak = path.join(__dirname, path.basename(hedef));
+    const yeni = path.join(__dirname, hedef);
+    if (!fs.existsSync(kaynak) || fs.existsSync(yeni)) continue;
+    fs.mkdirSync(path.dirname(yeni), { recursive: true });
+    fs.renameSync(kaynak, yeni);
+    tasinan++;
+  }
+  console.warn(`UYARI: Dosyalar GitHub'a klasörsüz yüklenmiş. Derleme için ${tasinan} dosya doğru klasöre taşındı.`);
+  console.warn('       Site çalışır; yine de bir sonraki yüklemede klasörleri (src/, public/) sürükleyip bırakın.');
+})();
+
+// Onarımdan sonra hâlâ eksik varsa ne yapılacağını söyleyerek dur.
+for (const gerekli of ['src/pages', 'src/layouts', 'src/data/articles.json', 'public/script.js']) {
+  if (!fs.existsSync(path.join(__dirname, gerekli))) {
+    console.error(`HATA: "${gerekli}" bulunamadı. Proje GitHub'a klasör yapısı olmadan (tüm dosyalar kök dizinde) yüklenmiş.`);
+    console.error('      Çözüm: zip içindeki src/ ve public/ KLASÖRLERİNİ olduğu gibi yükleyin (GitHub → Add file → Upload files → klasörleri sürükleyip bırakın)');
+    console.error('      ya da değişiklikleri git ile gönderin. Ayrıntı: README.md');
+    process.exit(1);
+  }
 }
 
 // ---- Firestore REST değerlerini düz JS'e çevir ----
@@ -44,19 +81,21 @@ function fromFields(fields) {
   return o;
 }
 
-async function fetchAll() {
+async function fetchAll(collection = CONFIG.collection) {
   // Yol 1: service account varsa firebase-admin ile oku (kurallardan bağımsız)
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     const admin = require('firebase-admin');
-    const creds = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({ credential: admin.credential.cert(creds) });
-    const snap = await admin.firestore().collection(CONFIG.collection).get();
+    if (!admin.apps.length) {
+      const creds = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      admin.initializeApp({ credential: admin.credential.cert(creds) });
+    }
+    const snap = await admin.firestore().collection(collection).get();
     console.log('Service account ile okundu.');
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }
 
   // Yol 2: herkese açık REST API
-  const base = `https://firestore.googleapis.com/v1/projects/${CONFIG.projectId}/databases/(default)/documents/${CONFIG.collection}`;
+  const base = `https://firestore.googleapis.com/v1/projects/${CONFIG.projectId}/databases/(default)/documents/${collection}`;
   const docs = [];
   let pageToken = '';
   do {
@@ -82,6 +121,33 @@ const clean = (s) => {
 };
 const esc = (s) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function bioText(s) {
+  return String(s || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'").replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/\s+/g, ' ').trim();
+}
+function bioHtml(s) {
+  const source = clean(s);
+  if (!source) return '';
+  if (!/<\/?[a-z][^>]*>/i.test(source)) {
+    return source.split(/\n+/).filter(Boolean).map((line) => `<p>${esc(line)}</p>`).join('\n');
+  }
+  const allowed = new Set(['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'blockquote', 'h3', 'h4', 'span', 'div', 'a']);
+  return source
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(script|style|iframe|object|embed|svg|math)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<(script|style|iframe|object|embed|svg|math)\b[^>]*\/?>/gi, '')
+    .replace(/<\/?([a-z][a-z0-9]*)\b([^>]*)>/gi, (tagText, rawName, attrs) => {
+      const tag = rawName.toLowerCase();
+      if (!allowed.has(tag)) return '';
+      if (tag === 'br') return '<br>';
+      if (tagText.startsWith('</')) return `</${tag}>`;
+      if (tag !== 'a') return `<${tag}>`;
+      const hrefMatch = attrs.match(/\bhref\s*=\s*(["'])(.*?)\1/i);
+      if (!hrefMatch) return '<a>';
+      const href = hrefMatch[2].trim();
+      if (!/^(https?:\/\/|mailto:|\/|#)/i.test(href)) return '<a>';
+      return `<a href="${esc(href)}" rel="noopener noreferrer">`;
+    });
+}
 
 function slugify(text) {
   const map = { ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u', â: 'a', î: 'i', û: 'u', Ç: 'c', Ğ: 'g', İ: 'i', I: 'i', Ö: 'o', Ş: 's', Ü: 'u', Â: 'a', Î: 'i', Û: 'u' };
@@ -105,13 +171,14 @@ const shorten = (s, n) => (s.length <= n ? s : s.slice(0, n - 1).replace(/\s+\S*
 function renderPage(p, ctx) {
   const name = p._name;
   const bio = clean(p[CONFIG.bioField]);
-  const url = `${CONFIG.siteUrl}/${CONFIG.outDir}/${p._slug}`;
+  const readableBio = bioText(bio);
+  const url = `${CONFIG.siteUrl}/${CONFIG.urlPath}/${p._slug}`;
   const title = `${name.replace(/\s*\(.*?\)\s*/g, ' ').trim()}: Hayatı ve Nesebi | Asr-ı Saadet Portalı`;
-  const description = shorten(bio || `${name} hakkında Asr-ı Saadet Portalı'nda bilgi.`, 155);
+  const description = shorten(readableBio || `${name} hakkında Asr-ı Saadet Portalı'nda bilgi.`, 155);
 
   const link = (id, fallbackText) => {
     const rel = id && ctx.byId.get(id);
-    if (rel) return `<a href="/${CONFIG.outDir}/${rel._slug}">${esc(rel._name)}</a>`;
+    if (rel) return `<a href="/${CONFIG.urlPath}/${rel._slug}">${esc(rel._name)}</a>`;
     return fallbackText ? esc(fallbackText) : '';
   };
   const list = (ids) =>
@@ -122,17 +189,11 @@ function renderPage(p, ctx) {
 
   const rows = [
     ['Dönem', esc(clean(p.devir))],
-    ['Baba', link(p.babaId, clean(p.baba))],
-    ['Anne', link(p.anneId, clean(p.anne))],
-    ['Eş(ler)', list(p.esIds) || esc(clean(p.es))],
-    ['Çocuklar', list(p.cocukIds)],
+    ...kinRows(p, ctx.family, (id) => link(id)),
   ].filter(([, v]) => v);
+  void list;
 
-  const paragraphs = bio
-    .split(/\n+/)
-    .filter(Boolean)
-    .map((t) => `<p>${esc(t)}</p>`)
-    .join('\n');
+  const paragraphs = bioHtml(bio);
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -171,6 +232,7 @@ function renderPage(p, ctx) {
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="${CONFIG.cssHref}">
 <link rel="stylesheet" href="${CONFIG.premiumHref}">
+<link rel="stylesheet" href="/fixes.css">
 <style>
 .person-page{width:min(820px,100%);margin:0 auto;padding:clamp(2rem,5vw,4rem) clamp(1.25rem,4vw,2rem) clamp(3rem,6vw,5rem)}
 .person-crumbs{margin:0 0 1.5rem;color:var(--muted);font-size:.74rem;letter-spacing:.04em}
@@ -214,7 +276,7 @@ function renderPage(p, ctx) {
     ${paragraphs || '<p>Bu şahsiyet için içerik hazırlanıyor.</p>'}
     </div>
   </article>
-  <a class="person-back" href="/archive">← Arşive dön</a>
+  <p class="person-links"><a class="person-back" href="/genealogy#${encodeURIComponent(p.id)}">Soyağacında gör →</a> <a class="person-back" href="/archive">← Arşive dön</a></p>
 </main>
 <footer class="site-footer">
   <div class="footer-half footer-intro">
@@ -245,14 +307,148 @@ function renderPage(p, ctx) {
 (function(){var n=document.querySelector('.site-nav'),b=document.querySelector('.menu-toggle');
 if(n&&b)b.addEventListener('click',function(){var o=n.classList.toggle('menu-open');b.setAttribute('aria-expanded',o?'true':'false');});})();
 </script>
+<script defer src="/metin-duzelt.js"></script>
 </body>
 </html>`;
 }
 
+// ---- Veri kaynağı: Firestore → canlı site yedeği → boş ----
+async function liveSnapshot() {
+  const url = process.env.FALLBACK_DATA_URL || `${CONFIG.siteUrl}/site-data.json`;
+  const res = await fetch(url, { headers: { 'cache-control': 'no-cache' } });
+  if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
+  const json = await res.json();
+  if (!Array.isArray(json.zatlar) || !json.zatlar.length) throw new Error(`${url} boş veya geçersiz`);
+  return json;
+}
+async function loadData() {
+  try {
+    const [zatlar, olaylar] = await Promise.all([fetchAll(), fetchAll('olaylar')]);
+    let makaleler = [];
+    try { makaleler = await fetchAll('makaleler'); } catch (e) { console.warn('Makaleler okunamadı (önemsiz):', String(e.message || e).slice(0, 160)); }
+    return { kaynak: 'firestore', zatlar, olaylar, makaleler, generatedAt: Date.now() };
+  } catch (e) {
+    console.warn('UYARI: Firestore okunamadı → ' + String(e.message || e).replace(/\s+/g, ' ').slice(0, 220));
+    console.warn('       Kalıcı çözüm: Vercel → Settings → Environment Variables → FIREBASE_SERVICE_ACCOUNT ekleyin (README §4).');
+  }
+  try {
+    const snap = await liveSnapshot();
+    const zamanlar = [...snap.zatlar, ...(snap.olaylar || [])].map((d) => Number(d.guncellemeTarihi) || 0);
+    console.warn(`       Yedek olarak canlı sitenin verisi kullanıldı (${snap.zatlar.length} şahsiyet).`);
+    return {
+      kaynak: 'canli-site', zatlar: snap.zatlar, olaylar: snap.olaylar || [], makaleler: snap.makaleler || [],
+      generatedAt: snap.generatedAt || Math.max(0, ...zamanlar),
+    };
+  } catch (e) {
+    console.warn('UYARI: Canlı site verisi de alınamadı → ' + String(e.message || e).slice(0, 160));
+  }
+  return { kaynak: 'yok', zatlar: [], olaylar: [], makaleler: [], generatedAt: 0 };
+}
+
+// ---- Akrabalık (statik sayfalar için ID tabanlı, sade sürüm; sitedeki tam hesap script.js'te) ----
+const cinsiyetNorm = (z) => {
+  const c = String((z && z.cinsiyet) || '').toLocaleLowerCase('tr').replace('ı', 'i');
+  if (c === 'erkek' || c === 'kadin') return c;
+  const ad = ' ' + String((z && (z.isim || z.ad)) || '') + ' ';
+  if (/\s(binti|bint|bintü)\s/i.test(ad) || /^\s*(hz\.?\s*)?ümm/i.test(ad)) return 'kadin';
+  if (/\s(bin|ibn|ibni|ibn-i)\s/i.test(ad) || /^\s*(hz\.?\s*)?ebu/i.test(ad)) return 'erkek';
+  return null;
+};
+function buildFamily(people) {
+  const byId = new Map(people.map((p) => [p.id, p]));
+  const fam = new Map(people.map((p) => [p.id, { parents: new Map(), children: new Set(), spouses: new Set() }]));
+  const ids = (v) => (Array.isArray(v) ? v : v ? [v] : []).filter((id) => byId.has(id));
+  const link = (child, parent, role) => {
+    if (!child || !parent || child === parent || !fam.has(child) || !fam.has(parent)) return;
+    const f = fam.get(child);
+    if (role && [...f.parents.values()].includes(role) && f.parents.get(parent) !== role) return;
+    if (!f.parents.has(parent) && f.parents.size >= 2) return;
+    if (!f.parents.get(parent)) f.parents.set(parent, role || null);
+    fam.get(parent).children.add(child);
+  };
+  for (const p of people) {
+    ids(p.babaId).forEach((id) => link(p.id, id, 'baba'));
+    ids(p.anneId).forEach((id) => link(p.id, id, 'anne'));
+  }
+  for (const p of people) {
+    const g = cinsiyetNorm(p);
+    ids(p.cocukIds).forEach((id) => link(id, p.id, g === 'erkek' ? 'baba' : g === 'kadin' ? 'anne' : null));
+    ids(p.esIds).forEach((id) => { if (id !== p.id) { fam.get(p.id).spouses.add(id); fam.get(id).spouses.add(p.id); } });
+  }
+  const siblings = (id) => {
+    const out = new Set();
+    fam.get(id).parents.forEach((_, pid) => fam.get(pid).children.forEach((c) => { if (c !== id) out.add(c); }));
+    return out;
+  };
+  return { byId, fam, siblings };
+}
+function kinRows(p, F, link) {
+  const f = F.fam.get(p.id);
+  if (!f) return [];
+  const g = (id) => cinsiyetNorm(F.byId.get(id));
+  const lab = (id, e, k, b) => (g(id) === 'erkek' ? e : g(id) === 'kadin' ? k : b);
+  const parentOf = (role) => [...f.parents].find(([, r]) => r === role);
+  const sib = [...F.siblings(p.id)];
+  const uncles = [];
+  f.parents.forEach((role, pid) => F.siblings(pid).forEach((u) => {
+    if (f.parents.has(u)) return;
+    uncles.push(link(u) + ` (${role === 'baba' ? lab(u, 'Amca', 'Hala', 'Babasının kardeşi') : role === 'anne' ? lab(u, 'Dayı', 'Teyze', 'Annesinin kardeşi') : 'Ebeveyninin kardeşi'})`);
+  }));
+  const grand = [];
+  f.parents.forEach((role, pid) => F.fam.get(pid).parents.forEach((_, gid) => grand.push(link(gid) + ` (${lab(gid, 'Dede', 'Nine', 'Dede / nine')}${role ? (role === 'baba' ? ', baba tarafı' : ', anne tarafı') : ''})`)));
+  const baba = parentOf('baba'), anne = parentOf('anne');
+  return [
+    ['Baba', baba ? link(baba[0]) : esc(clean(p.baba))],
+    ['Anne', anne ? link(anne[0]) : esc(clean(p.anne))],
+    ['Eş(ler)', [...f.spouses].map(link).join(', ') || esc(clean(p.es))],
+    ['Çocuklar', [...f.children].map(link).join(', ') || esc(clean(p.cocuklar))],
+    ['Kardeşler', sib.map(link).join(', ')],
+    ['Amca, hala, dayı, teyze', uncles.join(', ')],
+    ['Dede ve nineler', grand.join(', ')],
+  ].filter(([, v]) => v && v !== 'Undefined');
+}
+
+// ---- Makaleler: src/data/articles.json + Firestore 'makaleler' (yayında olanlar) ----
+function mergeArticles(base, fromDb) {
+  const out = new Map(base.map((a) => [a.slug, a]));
+  for (const m of fromDb || []) {
+    if (!m || m.yayinda === false || !m.slug || !m.baslik) continue;
+    out.set(m.slug, {
+      slug: m.slug, baslik: m.baslik, etiket: m.etiket || 'Makale', ozet: m.ozet || '', govde: m.govde || '',
+      image: m.image || '', gorsel: m.gorsel || '', kaynaklar: m.kaynaklar || '', tarih: m.tarih || m.guncellemeTarihi || null,
+    });
+  }
+  return [...out.values()];
+}
+
+// Yüklenen kapak görselleri Firestore'da data: URL olarak durur. Derlemede dosyaya çıkarılır ki
+// site-data.json ve statik sayfalar şişmesin; görseller CDN'den önbellekli gelir.
+function extractArticleImages(list) {
+  const dir = path.join('public', 'makale-gorsel');
+  fs.rmSync(dir, { recursive: true, force: true });
+  return (list || []).map((m) => {
+    const match = m && typeof m.gorsel === 'string' && m.gorsel.match(/^data:image\/(jpeg|jpg|png|webp);base64,(.+)$/);
+    if (!match || !m.slug) return m;
+    fs.mkdirSync(dir, { recursive: true });
+    const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+    const file = `${String(m.slug).replace(/[^a-z0-9-]/g, '')}.${ext}`;
+    fs.writeFileSync(path.join(dir, file), Buffer.from(match[2], 'base64'));
+    return { ...m, gorsel: `/makale-gorsel/${file}` };
+  });
+}
+
 // ---- Ana akış ----
 (async () => {
-  const docs = await fetchAll();
-  console.log(`${docs.length} kayıt okundu.`);
+  const veri = await loadData();
+  veri.makaleler = extractArticleImages(veri.makaleler);
+  const docs = veri.zatlar;
+  const events = veri.olaylar;
+  console.log(`${docs.length} şahsiyet, ${events.length} olay, ${veri.makaleler.length} makale okundu (kaynak: ${veri.kaynak}).`);
+
+  // Makaleler Astro'dan önce hazırlanır: src/data/articles.generated.json (git'e girmez)
+  const baseArticles = JSON.parse(fs.readFileSync(path.join(__dirname, 'src', 'data', 'articles.json'), 'utf8'));
+  const allArticles = mergeArticles(baseArticles, veri.makaleler);
+  fs.writeFileSync(path.join(__dirname, 'src', 'data', 'articles.generated.json'), JSON.stringify(allArticles, null, 1));
 
   const people = docs.filter((d) => getName(d));
   const skipped = docs.length - people.length;
@@ -269,10 +465,28 @@ if(n&&b)b.addEventListener('click',function(){var o=n.classList.toggle('menu-ope
 
     const bio = clean(p[CONFIG.bioField]);
     const hasSource = CONFIG.sourceField ? !!clean(p[CONFIG.sourceField]) : true;
-    p._indexable = wordCount(bio) >= CONFIG.minWords && hasSource;
+    p._indexable = wordCount(bioText(bio)) >= CONFIG.minWords && hasSource;
   }
 
-  const ctx = { byId: new Map(people.map((p) => [p.id, p])) };
+  // İstemci arşivindeki kayıt kimliklerini bu statik biyografi sayfalarına bağlar.
+  fs.mkdirSync('public', { recursive: true });
+  fs.writeFileSync(path.join('public', 'sahabe-index.json'), JSON.stringify(
+    Object.fromEntries(people.map((p) => [p.id, p._slug]))
+  ));
+  if (docs.length) {
+    fs.writeFileSync(path.join('public', 'site-data.json'), JSON.stringify({
+      generatedAt: veri.generatedAt,
+      kaynak: veri.kaynak,
+      zatlar: docs.map(({ _name, _indexable, ...z }) => z),
+      olaylar: events,
+      makaleler: (veri.makaleler || []).filter((m) => m && m.yayinda !== false),
+      sahabeSayfaYollari: Object.fromEntries(people.map((p) => [p.id, p._slug])),
+    }));
+  } else {
+    fs.rmSync(path.join('public', 'site-data.json'), { force: true });
+  }
+
+  const ctx = { byId: new Map(people.map((p) => [p.id, p])), family: buildFamily(people) };
 
   fs.rmSync(CONFIG.outDir, { recursive: true, force: true });
   fs.mkdirSync(CONFIG.outDir, { recursive: true });
@@ -282,22 +496,24 @@ if(n&&b)b.addEventListener('click',function(){var o=n.classList.toggle('menu-ope
 
   // sitemap.xml — sadece yeterli içeriği olan sayfalar
   const today = new Date().toISOString().slice(0, 10);
+  const articles = allArticles;
   const urls = [
     ...CONFIG.staticPages.map((u) => CONFIG.siteUrl + u),
-    ...people.filter((p) => p._indexable).map((p) => `${CONFIG.siteUrl}/${CONFIG.outDir}/${p._slug}`),
+    ...articles.map((article) => `${CONFIG.siteUrl}/makaleler/${article.slug}`),
+    ...people.filter((p) => p._indexable).map((p) => `${CONFIG.siteUrl}/${CONFIG.urlPath}/${p._slug}`),
   ];
   const sitemap =
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
     urls.map((u) => `  <url><loc>${u}</loc><lastmod>${today}</lastmod></url>`).join('\n') +
     `\n</urlset>\n`;
-  fs.writeFileSync('sitemap.xml', sitemap);
+  fs.mkdirSync('public', { recursive: true });
+  fs.writeFileSync(path.join('public', 'sitemap.xml'), sitemap);
+  fs.writeFileSync(path.join('public', 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${CONFIG.siteUrl}/sitemap.xml\n`);
 
   const idx = people.filter((p) => p._indexable).length;
   console.log(`${people.length} sayfa üretildi: ${idx} index, ${people.length - idx} noindex (içerik yetersiz).`);
   console.log(`sitemap.xml: ${urls.length} URL.`);
 })().catch((e) => {
-  // Build'i düşürme: sayfa üretilemezse mevcut site olduğu gibi yayınlanır.
-  console.warn('UYARI: Şahsiyet sayfaları üretilemedi, mevcut site yayınlanıyor.');
-  console.warn(String(e && e.message ? e.message : e));
-  process.exit(0);
+  console.error('HATA: build.js beklenmedik şekilde durdu:', e);
+  process.exit(1);
 });

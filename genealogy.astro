@@ -1,0 +1,10 @@
+---
+import LegacyPage from '../components/LegacyPage.astro';
+const page = "genealogy";
+const title = "Sahabeler Arası Akrabalık ve Nesep Bağları";
+const description = "Ashab-ı Kiram arasındaki aile ve nesep ilişkilerini keşfedin.";
+const canonical = new URL('/genealogy', Astro.site).href;
+const heading = "Sahabeler Arası Nesep Bağları";
+---
+<LegacyPage {page} {title} {description} {canonical} {heading} noindex={false} />
+
