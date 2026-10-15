@@ -1,0 +1,10 @@
+---
+import LegacyPage from '../components/LegacyPage.astro';
+const page = "archive";
+const title = "Sahâbe Kataloğu";
+const description = "Şahsiyet ve olay kayıtlarını kaynaklara dayalı dijital arşivde arayın.";
+const canonical = new URL('/archive', Astro.site).href;
+const heading = "Sahâbe Kataloğu";
+---
+<LegacyPage {page} {title} {description} {canonical} {heading} noindex={false} />
+

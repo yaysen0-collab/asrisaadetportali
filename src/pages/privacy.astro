@@ -1,0 +1,10 @@
+---
+import LegacyPage from '../components/LegacyPage.astro';
+const page = "privacy";
+const title = "Gizlilik Politikası | Asr-ı Saadet Portalı";
+const description = "Asr-ı Saadet Portalı’nın kişisel verileri, çerezleri ve kullanıcı gizliliğini nasıl ele aldığını inceleyin.";
+const canonical = new URL('/privacy', Astro.site).href;
+const heading = "Gizlilik Politikası";
+---
+<LegacyPage {page} {title} {description} {canonical} {heading} noindex={false} />
+

@@ -1,0 +1,16 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+const { page, title, description, canonical, heading, intro = description, preloadHero = false, noindex = false } = Astro.props;
+---
+<SiteLayout {page} {title} {description} {canonical} legacyApp={true} {preloadHero} {noindex}>
+  <main id="app" aria-live="polite">
+    <section class="split">
+      <div class="half content">
+        <p class="eyebrow">Asr-ı Saadet Portalı</p>
+        <h1>{heading}</h1>
+        <p class="lead">{intro}</p>
+        <p>Sayfa içeriği yükleniyor…</p>
+      </div>
+    </section>
+  </main>
+</SiteLayout>

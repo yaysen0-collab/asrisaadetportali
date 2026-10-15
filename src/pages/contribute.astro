@@ -1,0 +1,10 @@
+---
+import LegacyPage from '../components/LegacyPage.astro';
+const page = "contribute";
+const title = "Katkıda Bulun | Asr-ı Saadet Portalı";
+const description = "Asr-ı Saadet Portalı içeriklerine katkıda bulunma yollarını öğrenin.";
+const canonical = new URL('/contribute', Astro.site).href;
+const heading = "Katkıda Bulun";
+---
+<LegacyPage {page} {title} {description} {canonical} {heading} noindex={false} />
+

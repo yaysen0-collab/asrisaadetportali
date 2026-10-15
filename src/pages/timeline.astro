@@ -1,0 +1,10 @@
+---
+import LegacyPage from '../components/LegacyPage.astro';
+const page = "timeline";
+const title = "Asr-ı Saadet Zaman Çizelgesi";
+const description = "Asr-ı Saadet ve İslam tarihindeki önemli olayları zaman sırasıyla inceleyin.";
+const canonical = new URL('/timeline', Astro.site).href;
+const heading = "Zaman Çizelgesi";
+---
+<LegacyPage {page} {title} {description} {canonical} {heading} noindex={false} />
+

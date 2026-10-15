@@ -1,0 +1,10 @@
+---
+import LegacyPage from '../components/LegacyPage.astro';
+const page = "random";
+const title = "Rastgele Sahabe | Asr-ı Saadet Portalı";
+const description = "Arşivden rastgele bir şahsiyet keşfedin.";
+const canonical = new URL('/random', Astro.site).href;
+const heading = "Rastgele Şahsiyet";
+---
+<LegacyPage {page} {title} {description} {canonical} {heading} noindex={false} />
+
