@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://asrisaadetportali.vercel.app/sitemap.xml
