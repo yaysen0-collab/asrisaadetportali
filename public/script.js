@@ -2810,7 +2810,7 @@ async function dogrulamaGonder() {
   if (!AU || !auth || !auth.currentUser) return dogrulamaMesaji("Önce giriş yapın.");
   dogrulamaMesaji("Gönderiliyor…");
   try {
-    await AU.sendEmailVerification(auth.currentUser);
+    // await AU.sendEmailVerification(auth.currentUser);
     dogrulamaMesaji("Doğrulama bağlantısı " + auth.currentUser.email + " adresine gönderildi. Gereksiz (spam) klasörünü de kontrol edin.");
   } catch (err) {
     console.error("Doğrulama e-postası hatası:", err && err.code, err);
