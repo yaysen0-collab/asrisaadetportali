@@ -346,7 +346,7 @@ function adminEpostasiMi() {
 /* Yönetici = listedeki e-posta + DOĞRULANMIŞ e-posta. firestore.rules da aynı şartı arar;
    böylece biri yönetici adresiyle doğrulanmamış bir üyelik açarak panele giremez. */
 function adminMi() {
-  return adminEpostasiMi() && !!durum.kullanici.emailVerified;
+  return adminEpostasiMi() 
 }
 
 function hosgeldinBildirimGoster(email) {
